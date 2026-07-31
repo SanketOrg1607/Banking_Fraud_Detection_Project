@@ -70,6 +70,20 @@ public class AccountController {
     }
 
     /*
-    * SAGA Step 4  - Compensating transaction
+    * SAGA Step 4  - Compensating transaction endpoint
+    * called by transaction service in two scenarios
+    * 1.if the transaction is completed successfully then amount credits to receiver
+    * 2.if the transaction detects the fraud it will refund the amount to the sender
     * */
+
+    public ResponseEntity<String> creditAmount(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount)
+    {
+        return ResponseEntity.ok("Amount credited successfully");
+    }
+
+
+
+
 }
