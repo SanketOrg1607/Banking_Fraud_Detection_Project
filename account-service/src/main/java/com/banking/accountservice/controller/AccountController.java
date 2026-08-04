@@ -40,10 +40,10 @@ public class AccountController {
 
     //  Get the balance
     @GetMapping("/{accountNumber}/balance")
-    public ResponseEntity<String> getBalance(
+    public ResponseEntity<BigDecimal> getBalance(
         @PathVariable String accountNumber)
     {
-        return ResponseEntity.ok(accountservice.getBalance());
+        return ResponseEntity.ok(accountservice.getBalance(accountNumber));
     }
 
     // Block the Account
@@ -76,14 +76,10 @@ public class AccountController {
     * 2.if the transaction detects the fraud it will refund the amount to the sender
     * */
 
-    public ResponseEntity<String> creditAmount(
+    public ResponseEntity<String> creditBalance(
             @PathVariable String accountNumber,
             @RequestParam BigDecimal amount)
     {
         return ResponseEntity.ok("Amount credited successfully");
     }
-
-
-
-
 }
