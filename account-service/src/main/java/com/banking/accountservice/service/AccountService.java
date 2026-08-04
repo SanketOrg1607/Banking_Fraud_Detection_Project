@@ -9,6 +9,7 @@ import com.banking.accountservice.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
@@ -19,7 +20,7 @@ import java.security.SecureRandom;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    private static SecureRandom secureRandom = new SecureRandom();
+    private final static SecureRandom secureRandom = new SecureRandom();
 
     public AccountResponse createAccount(CreateAccountRequest request)
     {
@@ -30,7 +31,7 @@ public class AccountService {
             throw new RuntimeException("Account already exists for " + request.getEmail());
         }
 
-        // Setting the account request values fro the account
+        // Setting the account request values from the account
         Account account = new Account();
         account.setAccountHolderName(request.getAccountHolderName());
         account.setEmail(request.getEmail());
@@ -49,6 +50,74 @@ public class AccountService {
         Account savedAccount= accountRepository.save(account);
         log.info("Account created : {}",savedAccount.getAccountNumber());
         return mapToResponse(savedAccount);
+    }
+
+    /*
+    * Get account by account number */
+    public AccountResponse getAccount(
+            String accountNumber
+    )
+    {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(()-> new RuntimeException("Account not found"));
+
+        return mapToResponse(account);
+    }
+
+    /*
+    * get account balance */
+    public BigDecimal getBalance(
+            String accountNumber
+    )
+    {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(()-> new RuntimeException("Account not found"));
+
+        return account.getBalance();
+    }
+    /*
+    * Block account - called by fraud detection service via kafka
+    * */
+    public void blockAccount(String accountNumber)
+    {
+        log.info("Blocking account : {}",accountNumber);
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        account.setStatus(AccountStatus.BLOCKED);
+        accountRepository.save(account);
+        log.info("Account blocked: {}",accountNumber);
+    }
+
+    /*
+    * Deduct balance from sender account
+    * Called by transaction service via kafka  */
+    public void deductBalance(String accountNumber,BigDecimal amount)
+    {
+        log.info("Deducting balance {} from account : {}",amount,accountNumber);
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(()->new RuntimeException("Account not found"));
+
+        if(account.getStatus() != AccountStatus.ACTIVE)
+        {
+            throw new RuntimeException("Account is not active"+accountNumber);
+        }
+
+        if(account.getBalance().compareTo(amount) < 0)
+        {
+            throw new RuntimeException("Insufficient funds for account "+accountNumber);
+        }
+
+        account.setBalance(account.getBalance().subtract(amount));
+        log.info("Balance updated. New Balance: {} ",account.getBalance());
+    }
+
+    /*
+     Credit balance called by transaction service via kafka
+     */
+    public void creditBalance(String accountNumber,BigDecimal amount)
+    {
+        log.info("Crediting {} to account: {}",amount,accountNumber);
     }
 
     // Generate 12 digit unique account number
