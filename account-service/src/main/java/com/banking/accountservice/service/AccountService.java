@@ -118,13 +118,20 @@ public class AccountService {
     public void creditBalance(String accountNumber,BigDecimal amount)
     {
         log.info("Crediting {} to account: {}",amount,accountNumber);
+
+        Account account= accountRepository.findByAccountNumber(accountNumber)
+                        .orElseThrow(() -> new RuntimeException("Account not found"));
+        // Crediting the amount in to account
+        account.setBalance(account.getBalance().add(amount));
+        accountRepository.save(account);
+
+        log.info("Balance credited. New Balance: {}",account.getBalance());
     }
 
     // Generate 12 digit unique account number
     private String generateAccountNumber()
     {
         String accountNumber;
-
         do{
             long number = secureRandom.nextLong(1_000_000_000_000L);
             accountNumber = String.format("%012d",number);
@@ -152,6 +159,4 @@ public class AccountService {
 
         return response;
     }
-
-
 }
