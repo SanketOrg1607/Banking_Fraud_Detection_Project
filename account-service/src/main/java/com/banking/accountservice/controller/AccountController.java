@@ -40,10 +40,10 @@ public class AccountController {
 
     //  Get the balance
     @GetMapping("/{accountNumber}/balance")
-    public ResponseEntity<String> getBalance(
+    public ResponseEntity<BigDecimal> getBalance(
         @PathVariable String accountNumber)
     {
-        return ResponseEntity.ok(accountservice.getBalance());
+        return ResponseEntity.ok(accountservice.getBalance(accountNumber));
     }
 
     // Block the Account
@@ -70,6 +70,16 @@ public class AccountController {
     }
 
     /*
-    * SAGA Step 4  - Compensating transaction
+    * SAGA Step 4  - Compensating transaction endpoint
+    * called by transaction service in two scenarios
+    * 1.if the transaction is completed successfully then amount credits to receiver
+    * 2.if the transaction detects the fraud it will refund the amount to the sender
     * */
+
+    public ResponseEntity<String> creditBalance(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount)
+    {
+        return ResponseEntity.ok("Amount credited successfully");
+    }
 }
