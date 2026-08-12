@@ -16,7 +16,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -85,6 +87,24 @@ public class TransactionService {
 
         return mapToResponse(savedTransaction);
         // transfer method is completed
+    }
+
+    // Get transaction by transaction id
+    public TransactionResponse getTransaction(String transactionId)
+    {
+        return mapToResponse( transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Transaction not found"
+                )));
+    }
+
+    // Get transaction history
+    public List<TransactionResponse> getTransactionHistory(String accountNumber)
+    {
+        return transactionRepository.findSenderAccountNumberOrderByCreatedAtDesc(accountNumber)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     private  TransactionResponse mapToResponse(Transaction transaction)
