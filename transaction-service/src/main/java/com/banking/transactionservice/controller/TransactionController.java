@@ -42,7 +42,7 @@ public class TransactionController {
     // Get the transaction history by the account number
     @GetMapping("/accountNumber")
     public ResponseEntity<List<TransactionResponse>> transactionHistory(
-            @PathVariable String accoTuntNumber
+            @PathVariable String accountNumber
     )
     {
         return ResponseEntity.ok(transactionService.getTransactionHistory(accountNumber));
