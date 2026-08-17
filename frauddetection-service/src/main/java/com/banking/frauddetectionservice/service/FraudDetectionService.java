@@ -11,6 +11,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +30,9 @@ public class FraudDetectionService {
 
     @Value("{fraud.suspicious-amount-multiplier")
     private double suspiciousAmountMultiplier;
+
+    @Value("${fraud.max-balacne-percentage}")
+    private double maxBalancePercentage;
 
     private static final String VERFIFICATION_REQUIED_TOPIC = "verification.required";
 
@@ -119,7 +123,7 @@ public class FraudDetectionService {
         return count != null && count > maxTransactionsPerMinute;
     }
 
-    // Pattern : Amount check
+    // Pattern 2 : Amount check
     // here we are checking the initiated transaction amount 3X more than the average
     private boolean isAmountSuspicious(String accountNumber, BigDecimal amount){
         String avgKey = "fraud:avg_amount"+ accountNumber;
@@ -132,10 +136,30 @@ public class FraudDetectionService {
         }
 
         BigDecimal avgAmount  = new BigDecimal(avgStr);
-//        BigDecimal threshold = avgAmount.multiply()
+        BigDecimal threshold = avgAmount.multiply(
+                BigDecimal.valueOf(suspiciousAmountMultiplier)
+        );
 
-        return false;
+        // Updating running average
+        BigDecimal newAvg = avgAmount.add(amount)
+                .divide(BigDecimal.valueOf(2),2, RoundingMode.HALF_UP);
 
+        redisTemplate.opsForValue().set(avgKey,newAvg.toString());
+        log.info("Amount check - amount: {} threshold: {} suspicious:{} ",
+                amount,threshold,amount.compareTo(threshold) > 0);
+
+        return amount.compareTo(threshold) > 0;
+    }
+
+    private boolean isBalanceCheckFailed(BigDecimal senderBalance,BigDecimal amount)
+    {
+        BigDecimal maxAllowed = senderBalance.multiply(
+                BigDecimal.valueOf(maxBalancePercentage));
+
+        log.info("Balance check - amount: {} maxAllowed: {} suspicious: {}",
+                amount,maxAllowed,amount.compareTo(maxAllowed) > 0);
+
+        return amount.compareTo(maxAllowed) > 0;
     }
 
 
