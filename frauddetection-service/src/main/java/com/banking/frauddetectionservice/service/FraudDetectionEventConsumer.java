@@ -1,7 +1,7 @@
 package com.banking.frauddetectionservice.service;
 
 
-import lombok.RequiredArgsConstructor;
+import  lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import java.util.Map;
 public class FraudDetectionEventConsumer {
 
     private final FraudDetectionService fraudDetectionService;
-
+    private final RedisTem
     public void consumeTransactionInitiate(
             @Payload Map<String,Object> payload
     )
