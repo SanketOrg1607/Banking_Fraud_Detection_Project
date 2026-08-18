@@ -6,9 +6,12 @@ import com.banking.transactionservice.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -19,13 +22,17 @@ public class TransactionEventConsumer {
 
     private final TransactionRepository transactionRepository;
     private final RedisTemplate<String,String> redisTemplate;
+
     private static final long OTP_EXPIRY_MINUTES = 5;
 
+    private final KafkaTemplate<String,Object> kafkaTemplate;
+    private static final String TRANSACTION_OTP_GENERATED_TOPIC = "transaction.otp.generated";
     /**
      * Consume verification.required
      * Generate OTP and ask user to verify
      * @param payload
      */
+    @KafkaListener(topics="veri fication.required")
     public void consumeVerificationRequired(
             @Payload Map<String,Object> payload
     )
@@ -61,12 +68,19 @@ public class TransactionEventConsumer {
                 log.info("OTP generated for transaction: {} expires in {} min",
                         transactionId,OTP_EXPIRY_MINUTES);
 
-                // Notify user
-                // our banking system will generate otp and publish the event transaction otp generated to the notification service and calls verify otp of transaction service
+            // Notify user
+            // our banking system will generate otp and publish the event transaction otp generated to the notification service and calls verify otp of transaction service
+            Map<String,Object> otpEvent = new HashMap<>();
+            otpEvent.put("transactionId",transactionId);
+            otpEvent.put("accountNumber",accountNumber);
+            otpEvent.put("reason",reason);
+            otpEvent.put("amount",payload.get("amount"));
+                // This event consumes by notification service and calls verifyOtp()
+                kafkaTemplate.send(TRANSACTION_OTP_GENERATED_TOPIC,transactionId,otp);
          }
         catch(Exception e)
         {
-
+            log.error("Error handling verification required: {}",e.getMessage() );
         }
     }
 }
