@@ -76,6 +76,7 @@ public class AccountController {
     * 2.if the transaction detects the fraud it will refund the amount to the sender
     * */
 
+    @PutMapping("/{accountNumber}/credit")
     public ResponseEntity<String> creditBalance(
             @PathVariable String accountNumber,
             @RequestParam BigDecimal amount)
