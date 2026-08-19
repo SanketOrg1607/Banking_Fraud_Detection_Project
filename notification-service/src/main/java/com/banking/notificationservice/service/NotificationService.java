@@ -40,6 +40,7 @@ public class NotificationService {
             log.error("Error sending OTP notification: {}",e.getMessage());
         }
     }
+    // We have to consume a alerts here like payment success, payment failed from payment service
     private void sendAlert(String accountNumber,String subject,String message)
     {
 
