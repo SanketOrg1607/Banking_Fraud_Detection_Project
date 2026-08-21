@@ -2,6 +2,7 @@ package com.banking.paymentservice.serivice;
 
 import com.banking.paymentservice.dto.CreatePaymentRequest;
 import com.banking.paymentservice.dto.PaymentOrderResponse;
+import com.banking.paymentservice.entity.Payment;
 import com.banking.paymentservice.repository.PaymentRepository;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -26,8 +28,6 @@ public class PaymentService {
 
     @Value(("${razorpay.key-secrete}"))
     private String keySecrete;
-
-
 
     private static final String PAYMENT_COMPLETED_TOPIC = "payment.completed";
     private static final String PAYMENT_FAILED_TOPIC = "payment.failed ";
@@ -43,6 +43,7 @@ public class PaymentService {
      * 6.Razorpay calls webhook - after user pays web captured status and events
      * @param request
      */
+    // First method - Create payment order
     public PaymentOrderResponse createPaymentOrder(
             CreatePaymentRequest request
     ) throws RazorpayException
@@ -62,7 +63,6 @@ public class PaymentService {
                 .multiply(BigDecimal.valueOf(100))
                 .intValue();
 
-
         // Created a new  request object
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount",convertedAmount);
@@ -71,12 +71,44 @@ public class PaymentService {
                 .replace("-","").substring(0,10)
         );
 
+        // Create order in razorpay
         Order razorpayOrder = razorpayClient.orders.create(orderRequest);
-
         log.info("Razorpay order created : {}",razorpayOrder.get("id").toString());
 
-        // Create order in razorpay is done
-        
+        // Save payment record
+        Payment payment = new Payment();
+        payment.setRazorpayOrderId(razorpayOrder.get("id").toString());
+        payment.setAccountNumber(request.getAccountNumber());
+        payment.setAmount(request.getAmount());
+        payment.setCurrency("USD/INR");
+        payment.setDescription(request.getDescription());
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        return new PaymentOrderResponse(
+                savedPayment.getId(),
+                razorpayOrder.get("id").toString(),
+                request.getAmount(),
+                "USD/INR",
+                "CREATED",
+                keyId
+        );
     }
 
+    public void handleWebhook(Map<String,Object> payload)
+    {
+        log.info("Received Razorpay webhook: {}",
+                payload.get("event"));
+
+        String event = (String) payload.get("event");
+
+        if("payment.captured".equals(event))
+        {
+            handlePaymentSuccess(payload);
+        }
+        else if("payment.failed".equals(event))
+        {
+            handleWebPaymentFailure(payload);
+        }
+    }
 }
