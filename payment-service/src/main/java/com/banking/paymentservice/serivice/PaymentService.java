@@ -2,6 +2,8 @@ package com.banking.paymentservice.serivice;
 
 import com.banking.paymentservice.dto.CreatePaymentRequest;
 import com.banking.paymentservice.dto.PaymentOrderResponse;
+import com.banking.paymentservice.entity.Payment;
+import com.banking.paymentservice.entity.PaymentStatus;
 import com.banking.paymentservice.repository.PaymentRepository;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
@@ -10,9 +12,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -20,14 +25,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentService {
     private final PaymentRepository paymentRepository;
+    private final KafkaTemplate<String,Object> kafkaTemplate;
 
     @Value("${razorpay.key-id}")
     private String keyId;
 
     @Value(("${razorpay.key-secrete}"))
     private String keySecrete;
-
-
 
     private static final String PAYMENT_COMPLETED_TOPIC = "payment.completed";
     private static final String PAYMENT_FAILED_TOPIC = "payment.failed ";
@@ -43,6 +47,7 @@ public class PaymentService {
      * 6.Razorpay calls webhook - after user pays web captured status and events
      * @param request
      */
+    // First method - Create payment order
     public PaymentOrderResponse createPaymentOrder(
             CreatePaymentRequest request
     ) throws RazorpayException
@@ -62,21 +67,119 @@ public class PaymentService {
                 .multiply(BigDecimal.valueOf(100))
                 .intValue();
 
-
         // Created a new  request object
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount",convertedAmount);
-        orderRequest.put("currency","USD/INR");
+        orderRequest.put("currency","USD/INR"
+        );
         orderRequest.put("receipt","rcpt"+ + System.currentTimeMillis() + UUID.randomUUID().toString()
                 .replace("-","").substring(0,10)
         );
 
+        // Create order in razorpay
         Order razorpayOrder = razorpayClient.orders.create(orderRequest);
-
         log.info("Razorpay order created : {}",razorpayOrder.get("id").toString());
 
-        // Create order in razorpay is done
-        
+        // Save payment record
+        Payment payment = new Payment();
+        payment.setRazorpayOrderId(razorpayOrder.get("id").toString());
+        payment.setAccountNumber(request.getAccountNumber());
+        payment.setAmount(request.getAmount());
+        payment.setCurrency("USD/INR");
+        payment.setDescription(request.getDescription());
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        return new PaymentOrderResponse(
+                savedPayment.getId(),
+                razorpayOrder.get("id").toString(),
+                request.getAmount(),
+                "USD/INR",
+                "CREATED",
+                keyId
+        );
     }
 
+    public void handleWebhook(Map<String,Object> payload)
+    {
+        log.info("Received Razorpay webhook: {}",
+                payload.get("event"));
+
+        String event = (String) payload.get("event");
+
+        if("payment.captured".equals(event))
+        {
+            handlePaymentSuccess(payload);
+        }
+        else if("payment.failed".equals(event))
+        {
+            handlePaymentFailure(payload);
+        }
+    }
+
+    private void handlePaymentSuccess(Map<String,Object> payload)
+    {
+        try{
+            Map<String,Object> paymentData = extractPaymentData(payload);
+            String orderId = (String) paymentData.get("order-id");
+            String paymentId = (String)  paymentData.get("id");
+
+            Payment payment = paymentRepository.findRazorpayOrderId(orderId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Payment not found for order : "+orderId
+                    ));
+
+            payment.setRazorpayPaymentId(paymentId);
+            payment.setStatus(PaymentStatus.COMPLETED);
+            paymentRepository.save(payment);
+
+            // Publish payment completed event to kafka
+            Map<String,Object> event = new HashMap<>();
+            event.put("paymentId",payment.getId());
+            event.put("accountNumber",payment.getAccountNumber());
+            event.put("amount",payment.getAmount());
+            event.put("razorpayPaymentId",paymentId);
+
+            kafkaTemplate.send(PAYMENT_COMPLETED_TOPIC,payment.getId(),event);
+            log.info("Payment completed : {}",payment.getId());
+        }
+        catch(Exception e)
+        {
+            log.error("Error handling payment success : {}",e.getMessage());
+        }
+    }
+
+    public void handlePaymentFailure(Map<String,Object> payload)
+    {
+        try{
+            Map<String,Object> paymentData = extractPaymentData(payload);
+            String orderId = (String) paymentData.get("order-id");
+
+            Payment payment = paymentRepository.findRazorpayOrderId(orderId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Payment not found for order : "+orderId
+                    ));
+
+            payment.setStatus(PaymentStatus.COMPLETED);
+            payment.setFailureReason("Payment failed via razorpay");
+            paymentRepository.save(payment);
+
+            // Publish payment completed event to kafka
+            Map<String,Object> event = new HashMap<>();
+            event.put("paymentId",payment.getId());
+            event.put("accountNumber",payment.getAccountNumber());
+            event.put("amount",payment.getAmount());
+            event.put("reason","Payment failed via razorpay");
+
+            kafkaTemplate.send(PAYMENT_FAILED_TOPIC,payment.getId(),event);
+
+            log.warn("Payment failed: {} ",payment.getId());
+        }
+        catch(Exception e)
+        {
+            log.error("Error handling payment failed : {}",e.getMessage() );
+        }
+    }
+
+    // Extract payment data remaining
 }
