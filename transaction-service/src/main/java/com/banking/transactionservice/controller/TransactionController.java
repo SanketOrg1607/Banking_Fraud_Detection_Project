@@ -60,7 +60,7 @@ public class TransactionController {
         log.info("Otp verfication request - transaction: {}",transactionId);
 
         return ResponseEntity.ok(
-                transactionService.verifyOTP(transactionId,otp)
+                transactionService.verifyOtp(transactionId,otp)
         );
     }
 

@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -108,7 +107,7 @@ public class TransactionService {
     // Get transaction history
     public List<TransactionResponse> getTransactionHistory(String accountNumber)
     {
-        return transactionRepository.findSenderAccountNumberOrderByCreatedAtDesc(accountNumber)
+        return transactionRepository.findBySenderAccountNumberOrderByCreatedAtDesc(accountNumber)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
