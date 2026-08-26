@@ -180,6 +180,12 @@ public class PaymentService {
             log.error("Error handling payment failed : {}",e.getMessage() );
         }
     }
-
     // Extract payment data remaining
+    public Map<String,Object> extractPaymentData(Map<String,Object> payload)
+    {
+         Map<String,Object> entity = (Map<String,Object>) payload.get("payload");
+         Map<String,Object> paymentWrapper  = (Map<String,Object>)entity.get("payment");
+
+         return (Map<String,Object>) paymentWrapper.get("entity");
+    }
 }
