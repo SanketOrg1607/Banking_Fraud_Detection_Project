@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:mysql://localhost:3307/account_db?createDatabaseIfNotExist=true
-    username: root
-    password: manager
+    username: Enter_username
+    password: Enter_password
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
