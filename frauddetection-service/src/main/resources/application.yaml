@@ -1,13 +1,14 @@
 spring:
   application:
-    name: frauddetection-service
+    name: fraud-detection-service
   data:
-    redis: localhost
-    port: 6379
+    redis:
+      host: localhost
+      port: 6379
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:29092
     consumer:
-      group-id: account-service-group
+      group-id: fraud-detection-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -29,14 +30,15 @@ spring:
 server:
   port: 8084
 
-# Account Service URL for Feign Client
+# Account Service URL for Feign Client (Balance Check - Pattern 3)
 account:
   service:
     url: http://localhost:8081
 
-fraud :
+# Fraud Detection Rules
+fraud:
   max-transactions-per-minute: 5
-  suspicious-amount-multiplier: 5
+  suspicious-amount-multiplier: 3.0
   max-balance-percentage: 0.90
 
 management:
