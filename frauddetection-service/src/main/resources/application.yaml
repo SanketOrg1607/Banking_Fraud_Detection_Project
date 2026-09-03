@@ -6,7 +6,7 @@ spring:
       host: localhost
       port: 6379
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: localhost:9092
     consumer:
       group-id: fraud-detection-group
       auto-offset-reset: earliest

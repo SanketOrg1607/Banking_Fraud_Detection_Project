@@ -9,15 +9,16 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-@Service
 @Slf4j
 @RequiredArgsConstructor
+@Component
 public class TransactionEventConsumer {
 
     private final TransactionRepository transactionRepository;
@@ -86,6 +87,7 @@ public class TransactionEventConsumer {
         }
     }
 
+    @KafkaListener(topics = "fraud.check.clean")
     public void consumeFraudCheckCleanResult(
             @Payload Map<String,Object> payload
     )

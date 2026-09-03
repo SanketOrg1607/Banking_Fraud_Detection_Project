@@ -3,6 +3,7 @@ package com.banking.accountservice.dto;
 import com.banking.accountservice.entity.AccountType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,10 +26,10 @@ public class CreateAccountRequest {
     @NotBlank(message="Phone is required")
     private String phone;
 
-    @NotBlank(message = "Account type required")
+    @NotNull(message = "Account type required")
     private AccountType accountType;
 
-    @NotBlank(message = "Initial deposit is required")
+    @NotNull
     @Positive(message="initial deposit must be greater than zero")
     private BigDecimal initialDeposit;
 

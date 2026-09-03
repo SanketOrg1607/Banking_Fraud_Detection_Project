@@ -138,7 +138,7 @@ public class TransactionService {
                 .orElseThrow(() -> new RuntimeException("Transaction not found"+transactionId));
 
         // getting stored otp  to check  given otp by user is correct or not
-        String otpKey = "verification:otp" + transaction;
+        String otpKey = "verification:otp" + transactionId;
         String storedOtp = redisTemplate.opsForValue().get(otpKey);
 
         if(storedOtp == null)

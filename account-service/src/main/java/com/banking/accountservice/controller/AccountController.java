@@ -66,6 +66,7 @@ public class AccountController {
             @RequestParam BigDecimal amount
             )
     {
+        accountservice.deductBalance(accountNumber,amount);
         return ResponseEntity.ok("Amount deducted successfully");
     }
 
@@ -81,6 +82,7 @@ public class AccountController {
             @PathVariable String accountNumber,
             @RequestParam BigDecimal amount)
     {
+        accountservice.creditBalance(accountNumber,amount);
         return ResponseEntity.ok("Amount credited successfully");
     }
 }
