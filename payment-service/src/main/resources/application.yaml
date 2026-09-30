@@ -14,7 +14,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
   kafka:
-    bootstrap-servers: localhost:29092
+    bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -24,9 +24,9 @@ server:
 
 # Razorpay Configuration
 razorpay:
-  key-id: your_key_id
-  key-secret: your_key_secret
-  webhook-secret: your-webhook-secret
+  key-id: rzp_test_TXvI4EiDS2KzO5
+  key-secret: OOnZyPbzFTPOwexNJMVYutGO
+#  webhook-secret: your-webhook-secret
 
 management:
   endpoints:
