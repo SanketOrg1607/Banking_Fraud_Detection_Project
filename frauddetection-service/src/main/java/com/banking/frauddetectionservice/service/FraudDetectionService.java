@@ -40,7 +40,7 @@ public class FraudDetectionService {
 
     public void checkTransaction(Map<String,Object> payload) {
         String transactionId = (String) payload.get("transactionId");
-        String accountNumber = (String) payload.get("SenderAccountNumber");
+        String accountNumber = (String) payload.get("senderAccountNumber");
         BigDecimal amount = new BigDecimal(payload.get("amount").toString());
 
         // Fetch the real balance from Account Service
@@ -71,6 +71,8 @@ public class FraudDetectionService {
             transactionCleanEvent.put("transactionId",transactionId);
             transactionCleanEvent.put("isFraud",false);
             transactionCleanEvent.put("reason",null);
+
+            kafkaTemplate.send(FRAUD_CHECK_CLEAN_RESULT_TOPIC, transactionId, transactionCleanEvent);
         }
     }
 
