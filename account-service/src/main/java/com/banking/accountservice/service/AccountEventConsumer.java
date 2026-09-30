@@ -5,13 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Map;
-
 @Slf4j
+@Component
 @RequiredArgsConstructor
-@KafkaListener(topics="transaction.completed")
 public class AccountEventConsumer {
 
     private final AccountService accountService;
@@ -21,6 +21,7 @@ public class AccountEventConsumer {
     * credits receiver amount
     * @param payload
     * */
+    @KafkaListener(topics = "transaction.completed")
     public void consumeTransactionCompleted(@Payload Map<String, Object> payload)
     {
         try{
